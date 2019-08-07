@@ -154,7 +154,7 @@ set.seed(77850)
 #reimport file, saved as csv in workspace
 data <- read.csv(file= "originaldata.csv", header=TRUE, sep=",",na.strings=c("","NA"))
 
-#random rowIDs generated in mathematic for undersampling
+#import random rowIDs for undersampling (files are available on the github page)
 femalerowID <- read.csv(file= "FemaleRowIDs.csv", header=FALSE, sep=",",na.strings=c("","NA"))
 malerowID <- read.csv(file= "MaleRowIDs.csv", header=FALSE, sep=",",na.strings=c("","NA"))
 
