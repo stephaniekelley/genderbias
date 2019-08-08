@@ -1,7 +1,7 @@
 ####ANTI-DISCRIMINATION LAWS AND ALGORITHMIC DECISION-MAKING####
 #Authors: Stephanie Kelley and Anton Ovchinnikov
 #Special thanks to our Research Assisant Harshdeep Singh 
-#last updated July 24th, 2019
+#last updated August 8th, 2019
 
 #ensure necessary packages are installed
 if("pacman" %in% rownames(installed.packages()) == FALSE) {install.packages("pacman")} # Check if you have universal installer package, install if not
