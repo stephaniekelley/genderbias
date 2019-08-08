@@ -149,26 +149,25 @@ data<-cbind(train,Target)
 write.csv(data, "originaldata.csv")
 
 ####TRAINING/TESTING SPLIT OF ORIGINAL DATA####
-set.seed(77850)
-
+         
 #reimport file, saved as csv in workspace
 data <- read.csv(file= "originaldata.csv", header=TRUE, sep=",",na.strings=c("","NA"))
 
-#import random rowIDs for undersampling (files are available on the github page)
+#import random rowIDs use for train/test split and sampling
+testrowID <- read.csv(file= "testRowIDs.csv", header=TRUE, sep=",",na.strings=c("","NA"))
+trainrowID <- read.csv(file= "trainRowIDs.csv", header=TRUE, sep=",",na.strings=c("","NA"))
 femalerowID <- read.csv(file= "FemaleRowIDs.csv", header=FALSE, sep=",",na.strings=c("","NA"))
 malerowID <- read.csv(file= "MaleRowIDs.csv", header=FALSE, sep=",",na.strings=c("","NA"))
 
 ####DATA PREPROCESSING####
 #remove 4 XNA observations in CODE_GENDER
-datasex<- subset(data, CODE_GENDER!= 3)
-rm(data)
+data<- subset(data, CODE_GENDER!= 3)
 
 ####TRAIN/TEST SPLIT####
 #split 80/20 train test
-inTrain <- createDataPartition(y = datasex$Target, p = 0.8, list = FALSE) 
-train <- datasex[ inTrain,]
-test <- datasex[ -inTrain,]
-rm(datasex)
+test <- merge(testrowID, data, by="SK_ID_CURR")
+train<- merge(trainrowID, data, by="SK_ID_CURR")
+rm(data)
 
 #####RAW TRAINNIG SET####
 #MODEL 1 RAW runs on:
