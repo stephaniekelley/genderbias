@@ -3,10 +3,10 @@
 
 #ensure necessary packages are installed
 if("pacman" %in% rownames(installed.packages()) == FALSE) {install.packages("pacman")} # Check if you have universal installer package, install if not
-pacman::p_load("tidyverse", "ROCR", "caret", "xgboost", "magrittr") #Check, and if needed install the necessary packages
+pacman::p_load("tidyverse", "pROC", "caret", "xgboost", "magrittr") #Check, and if needed install the necessary packages
 
 library(tidyverse)
-library(ROCR)
+library(pROC)
 library(caret)
 library(xgboost)
 library(magrittr)
@@ -432,29 +432,29 @@ test <- read.csv(file= "test.csv", header=TRUE, sep=",",na.strings=c("","NA"))
 
 #MINORITY MODEL 1 AUC Calculation
 predMINM1 <- read.csv(file= "Predictions_MinorityModel1.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-model1MIN_ROC_prediction <- prediction(predMINM1$Target2, test$Target)
-auc.tmp <- performance(model1MIN_ROC_prediction,"auc") #Create AUC data
-model1MIN_AUC <- as.numeric(auc.tmp@y.values) #Calculate AUC
+model1MIN_AUC <- auc(test$Target, predMINM1$Target2) #Calculate AUC
+CIMINM1 <- ci.auc(model1MIN_AUC) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
 print(model1MIN_AUC)
+print(CIMINM1)
 
 #MINORITY MODEL 2 AUC Calculation
 #predict AUC MIN M2
 predMINM2 <- read.csv(file= "Predictions_MinorityModel2.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-model2MIN_ROC_prediction <- prediction(predMINM2$Target2, test$Target)
-auc.tmp <- performance(model2MIN_ROC_prediction,"auc") #Create AUC data
-model2MIN_AUC <- as.numeric(auc.tmp@y.values) #Calculate AUC
+model2MIN_AUC <- auc(test$Target,predMINM2$Target2) #Calculate AUC
+CIMINM2 <- ci.auc(model2MIN_AUC) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
 print(model2MIN_AUC)
+print(CIMINM2)
 
 #REBALANCED MODEL 1 AUC Calculation
 predREBM1 <- read.csv(file= "Predictions_RebalancedModel1.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-model1REB_ROC_prediction <- prediction(predREBM1$Target2, test$Target)
-auc.tmp <- performance(model1REB_ROC_prediction,"auc") #Create AUC data
-model1REB_AUC <- as.numeric(auc.tmp@y.values) #Calculate AUC
+model1REB_AUC <- auc(test$Target, predREBM1$Target2) #Calculate AUC
+CIREBM1 <- ci.auc(model1REB_AUC) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
 print(model1REB_AUC)
+print(CIREBM1)
 
 #REBALANCED MODEL 2 AUC Calculation
 predREBM2 <- read.csv(file= "Predictions_RebalancedModel2.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-model2REB_ROC_prediction <- prediction(predREBM2$Target2, test$Target)
-auc.tmp <- performance(model2REB_ROC_prediction,"auc") #Create AUC data
-model2REB_AUC <- as.numeric(auc.tmp@y.values) #Calculate AUC
+model2REB_AUC <- auc(test$Target, predREBM2$Target2) #Calculate AUC
+CIREBM2 <- ci.auc(model2REB_AUC) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
 print(model2REB_AUC)
+print(CIREBM2)
