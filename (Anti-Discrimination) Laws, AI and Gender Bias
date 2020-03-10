@@ -267,6 +267,14 @@ Target2<-predict(m_xgb,dtest)
 Final_df<-cbind(test$SK_ID_CURR,Target2)
 write.csv(Final_df,"Predictions_MinorityModel1.csv")
 
+#get the feature names
+names <- dimnames(data.matrix(train_1))[[2]]
+#compute feature importance matrix
+importance_matrix <- xgb.importance(names, model= m_xgb)
+#graph
+xgb.plot.importance(importance_matrix[1:25,])
+write.csv(importance_matrix, "MINM1imp.csv")
+
 ####MINORITY MODEL 2 (WITHOUT GENDER)####
 train <- read.csv("trainnosexMIN.csv")
 test <- read.csv("test.csv")
@@ -310,6 +318,14 @@ Target2<-predict(m_xgb,dtest)
 Final_df<-cbind(test$SK_ID_CURR,Target2)
 write.csv(Final_df,"Predictions_MinorityModel2.csv")
 
+#get the feature names
+names <- dimnames(data.matrix(train_1))[[2]]
+#compute feature importance matrix
+importance_matrix <- xgb.importance(names, model= m_xgb)
+#graph
+xgb.plot.importance(importance_matrix[1:25,])
+write.csv(importance_matrix, "MINM2imp.csv")
+
 ####REBALANCED MODEL 1 (WITH GENDER)####
 train<- read.csv("train50.csv")
 test <- read.csv("test.csv")
@@ -350,6 +366,14 @@ m_xgb <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
 Target2<-predict(m_xgb,dtest)
 Final_df<-cbind(test$SK_ID_CURR,Target2)
 write.csv(Final_df,"Predictions_RebalancedModel1.csv")
+
+#get the feature names
+names <- dimnames(data.matrix(train_1))[[2]]
+#compute feature importance matrix
+importance_matrix <- xgb.importance(names, model= m_xgb)
+#graph
+xgb.plot.importance(importance_matrix[1:25,])
+write.csv(importance_matrix, "REBM1imp.csv")
 
 ####REBALANCED MODEL 2 (WITHOUT GENDER)####
 train <- read.csv("trainnosex50.csv")
@@ -393,6 +417,14 @@ m_xgb <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
 Target2<-predict(m_xgb,dtest)
 Final_df<-cbind(test$SK_ID_CURR,Target2)
 write.csv(Final_df,"Predictions_RebalancedModel2.csv")
+
+#get the feature names
+names <- dimnames(data.matrix(train_1))[[2]]
+#compute feature importance matrix
+importance_matrix <- xgb.importance(names, model= m_xgb)
+#graph
+xgb.plot.importance(importance_matrix[1:25,])
+write.csv(importance_matrix, "REBM2imp.csv")
 
 ####AUC CALCULATIONS####
 
