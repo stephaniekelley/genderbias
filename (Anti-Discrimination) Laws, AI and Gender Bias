@@ -228,6 +228,8 @@ rm(trainMIN, trainnosexMIN, train50, trainnosex50, test)
 
 train <- read.csv("trainMIN.csv")
 test <- read.csv("test.csv")
+train <- train[-c(1:3)]
+test <- test[-c(1:3)]
 Testing_Predictions<-test$Target
 test$Target<-NULL
 
@@ -278,6 +280,8 @@ write.csv(importance_matrix, "MINM1imp.csv")
 ####MINORITY MODEL 2 (WITHOUT GENDER)####
 train <- read.csv("trainnosexMIN.csv")
 test <- read.csv("test.csv")
+train <- train[-c(1:3)]
+test <- test[-c(1:3)]
 Testing_Predictions<-test$Target
 test$Target<-NULL
 #Removing the gender from the test data
@@ -329,6 +333,8 @@ write.csv(importance_matrix, "MINM2imp.csv")
 ####REBALANCED MODEL 1 (WITH GENDER)####
 train<- read.csv("train50.csv")
 test <- read.csv("test.csv")
+train <- train[-c(1:3)]
+test <- test[-c(1:3)]
 Testing_Predictions<-test$Target
 test$Target<-NULL
 
@@ -378,6 +384,8 @@ write.csv(importance_matrix, "REBM1imp.csv")
 ####REBALANCED MODEL 2 (WITHOUT GENDER)####
 train <- read.csv("trainnosex50.csv")
 test<-read.csv("test.csv")
+train <- train[-c(1:3)]
+test <- test[-c(1:3)]
 Testing_Predictions<-test$Target
 test$Target<-NULL
 #Removing the gender from the test data
