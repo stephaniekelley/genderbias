@@ -1,25 +1,40 @@
-####(Anti-Discrimination) Laws, AI and Gender Bias####
-#last updated August 8th, 2019
+####ANTI-DISCRIMINATION LAWS, AI, AND GENDER BIAS IN NON-MORTGAGE FINTECH LENDING####
+#Authors: Stephanie Kelley and Anton Ovchinnikov
+#Special thanks to our Research Assistant Harshdeep Singh 
+#last updated September 29,2020
 
 #ensure necessary packages are installed
 if("pacman" %in% rownames(installed.packages()) == FALSE) {install.packages("pacman")} # Check if you have universal installer package, install if not
-pacman::p_load("tidyverse", "pROC", "caret", "xgboost", "magrittr") #Check, and if needed install the necessary packages
+pacman::p_load("tidyverse", "ROCR", "caret", "xgboost", "magrittr", "pROC") #Check, and if needed install the necessary packages
 
 library(tidyverse)
-library(pROC)
+library(ROCR)
 library(caret)
 library(xgboost)
 library(magrittr)
+library(pROC)
+library(ggplot2)
+library(SHAPforxgboost)
+library(fastDummies)
+library(rockchalk)
+library(dlookr)
+library(pscl)
+
 
 #set a random number seed for use throughout analysis
 set.seed(0)
 
-####COMBINE DATASETS AND FEATURE ENGINEER INTO "ORIGINAL DATA"####
-#import Kaggle data from Home Credit Default Risk competition (save files from below link in workspace)
-#datasets found at https://www.kaggle.com/c/home-credit-default-risk as of July 15, 2019
+options(max.print = 1000)
 
+####3.1 Data and Analytical Approach####
+#datasets can be found at the Home Credit Default Risk competition on Kaggle
+#website: https://www.kaggle.com/c/home-credit-default-risk as of September 29,2020
+#import Kaggle data from the website and save files in  your workspace (files are too large to save on github)
+#Disclaimer: the competition's rules prohibit using the data for research, however, Home Credit granted us explicit permission to use it for this study
 
-#Load data
+#Combine the datasets and perform feature engineering to create "Original Data"
+
+#Load data from workspace
 bbalance <- read_csv("bureau_balance.csv")
 bureau  <- read_csv("bureau.csv")
 cc_balance <- read_csv("credit_card_balance.csv")
@@ -146,90 +161,295 @@ data<-cbind(train,Target)
 #write data file to csv for records
 write.csv(data, "originaldata.csv")
 
-####TRAINING/TESTING SPLIT OF ORIGINAL DATA####
-         
-#reimport file, saved as csv in workspace
+####3.1.3. Data Sampling####
+
+#re-import file, saved as csv in workspace
 data <- read.csv(file= "originaldata.csv", header=TRUE, sep=",",na.strings=c("","NA"))
 
-#import random rowIDs use for train/test split and sampling
+#random rowIDs generated in Mathematic for sampling procedures
+#we have opted to use random numbers generated in Mathematica for replicability - these numbers are saved in csv files on github (https://github.com/stephaniekelley/genderbias)
 testrowID <- read.csv(file= "testRowIDs.csv", header=TRUE, sep=",",na.strings=c("","NA"))
 trainrowID <- read.csv(file= "trainRowIDs.csv", header=TRUE, sep=",",na.strings=c("","NA"))
 femalerowID <- read.csv(file= "FemaleRowIDs.csv", header=FALSE, sep=",",na.strings=c("","NA"))
 malerowID <- read.csv(file= "MaleRowIDs.csv", header=FALSE, sep=",",na.strings=c("","NA"))
+trainREBfemalerowID <- read.csv(file= "trainREBcollfemaleID.csv", header=FALSE, sep=",",na.strings=c("","NA"))
+trainREBmalerowID <- read.csv(file= "trainREBcollmaleID.csv", header=FALSE, sep=",",na.strings=c("","NA"))
 
-####DATA PREPROCESSING####
+#data cleaning
 #remove 4 XNA observations in CODE_GENDER
 data<- subset(data, CODE_GENDER!= 3)
 
-####TRAIN/TEST SPLIT####
+#create "Training data" and "Testing data" using 80%/20% Training/Testing split
 #split 80/20 train test
 test <- merge(testrowID, data, by="SK_ID_CURR")
 train<- merge(trainrowID, data, by="SK_ID_CURR")
 rm(data)
 
-#####RAW TRAINNIG SET####
-#MODEL 1 RAW runs on:
-#train
-
-#MODEL 2 RAW runs on:
-trainnosex <- train[-c(4)]
-
-####MINORITY TRAINING SET####
-#undersampling procedure
+#create "Minority data" using undersampling procedure
 #males==2, females==1
 trainmale <- train[train$CODE_GENDER == 2, ]
 trainfemale <- train[train$CODE_GENDER == 1, ]
 #add count from 1 to 161,732 to trainfemale
 trainfemale$RowNumber <- seq.int(nrow(trainfemale))
-
 #sample 21,068 females from trainfemale (161,732) using femalerowID V1
 femaleIDMIN <- data.frame(femalerowID$V1);names(femaleIDMIN)[1] <- "RowNumber"
 trainMINfemale<- merge(femaleIDMIN,trainfemale, by="RowNumber")
 trainMINfemale<- trainMINfemale[-c(1)]
 trainMIN <- rbind.data.frame(trainmale,trainMINfemale)
 
+#Combine training minority and testing datasets from main analysis to perform standard methodology for LR lending models, used by Andreeva and Matuszyk (2019)
+train<-read_csv("trainMIN.csv")
+test<-read_csv("test.csv")
+trainID <- train[c(3)]
+testID <- test[c(3)]
+data <- bind_rows(train, test)
+rm(train,test);gc()
+
+#remove all engineered features from combined dataset
+datalogfeatures<- data[c(3:123,744)]
+
+#data to transform to factors
+factorinfrequent <- function(x) {
+  fct_infreq(as.factor(x))
+} 
+
+datafactors <- datalogfeatures %>% mutate_at(c(2:5,11:15,22:28,30:40,86:87,89:94,96:122), factorinfrequent)
+
+rm(datalogfeatures);gc()
+
+#bin numeric features - 10-20 bins to start with most frequent bucket as reference category 
+#use binning from dlookr package https://www.rdocumentation.org/packages/dlookr/versions/0.3.13/topics/binning 
+#create pretty binning function that sets factors base level to most frequent bucket
+prettybin10<- function(x) {
+  binning(x,10,ordered=TRUE, approxy.lab=FALSE)
+} 
+
+databinned <- datafactors %>% mutate_at(c(6:10,16:21,29,41:85,88,95), prettybin10)
+
+summary(databinned$OBS_60_CNT_SOCIAL_CIRCLE)
+
+#combine factors with empty levels, and similar default rates
+#first determine with factors have empty levels
+datacombined <- databinned %>% mutate(OBS_30_CNT_SOCIAL_CIRCLE=combineLevels(OBS_30_CNT_SOCIAL_CIRCLE, levs=c("10", "11", "12", "13", "14",
+                                                                                                              "15","16","17","18","19","20",
+                                                                                                              "21","22","23","24","25","26","27",
+                                                                                                              "29","30","47","348"), newLabel=c("10+"))) %>%
+  mutate(DEF_30_CNT_SOCIAL_CIRCLE=combineLevels(DEF_30_CNT_SOCIAL_CIRCLE, levs=c("4", "5", "6", "8", "34"), newLabel=c("4+"))) %>%
+  mutate(OBS_60_CNT_SOCIAL_CIRCLE=combineLevels(OBS_60_CNT_SOCIAL_CIRCLE, levs=c("10", "11", "12", "13", "14",
+                                                                                 "15","16","17","18","19","20",
+                                                                                 "21","22","23","24","25","27",
+                                                                                 "29","47","344"), newLabel=c("10+"))) %>%
+  mutate(DEF_60_CNT_SOCIAL_CIRCLE=combineLevels(DEF_60_CNT_SOCIAL_CIRCLE, levs=c("4", "5", "6", "24"), newLabel=c("4+")))%>%
+  mutate(AMT_REQ_CREDIT_BUREAU_DAY=combineLevels(AMT_REQ_CREDIT_BUREAU_DAY, levs=c("4", "5", "6", "8", "9"), newLabel=c("4+")))%>%
+  mutate(AMT_REQ_CREDIT_BUREAU_WEEK=combineLevels(AMT_REQ_CREDIT_BUREAU_WEEK, levs=c("4", "5", "6", "7","8"), newLabel=c("4+")))%>%
+  mutate(AMT_REQ_CREDIT_BUREAU_MON=combineLevels(AMT_REQ_CREDIT_BUREAU_MON, levs=c("10", "11", "12", "13","14","15","16","17","18","19",
+                                                                                   "23","24","27"), newLabel=c("10+")))%>%
+  mutate(AMT_REQ_CREDIT_BUREAU_QRT=combineLevels(AMT_REQ_CREDIT_BUREAU_QRT, levs=c("4", "5", "6", "7","8"), newLabel=c("4+")))%>%
+  mutate(AMT_REQ_CREDIT_BUREAU_YEAR=combineLevels(AMT_REQ_CREDIT_BUREAU_YEAR, levs=c("10", "11", "12", "13","14","15","16","17","18","19",
+                                                                                     "21","22", "23","25"), newLabel=c("10+")))%>%
+  mutate(NAME_FAMILY_STATUS=combineLevels(NAME_FAMILY_STATUS, levs=c("5","6"), newLabel=c("5+")))
+
+summary(datacombined$OBS_60_CNT_SOCIAL_CIRCLE)
+
+summary(datacombined$EXT_SOURCE_1)
+
+
+rm(databinned);gc()
+
+#then coarse classes are transformed into binary dummy variables (Lin et al 2012),and original variables are removed
+datadummy <- dummy_cols(datacombined, select_columns = c("CNT_CHILDREN","AMT_INCOME_TOTAL", "AMT_CREDIT", "AMT_ANNUITY", "AMT_GOODS_PRICE",
+                                                         "REGION_POPULATION_RELATIVE", "DAYS_BIRTH", "DAYS_EMPLOYED", "DAYS_REGISTRATION",
+                                                         "DAYS_ID_PUBLISH", "OWN_CAR_AGE", "CNT_FAM_MEMBERS", "EXT_SOURCE_1", "EXT_SOURCE_2",
+                                                         "EXT_SOURCE_3", "DAYS_LAST_PHONE_CHANGE","APARTMENTS_AVG","BASEMENTAREA_AVG",
+                                                         "YEARS_BEGINEXPLUATATION_AVG", "YEARS_BUILD_AVG", "COMMONAREA_AVG", "ELEVATORS_AVG",
+                                                         "ENTRANCES_AVG", "FLOORSMAX_AVG", "FLOORSMIN_AVG", "LANDAREA_AVG", "LIVINGAPARTMENTS_AVG",
+                                                         "LIVINGAREA_AVG", "NONLIVINGAPARTMENTS_AVG", "NONLIVINGAREA_AVG",
+                                                         "APARTMENTS_MODE","BASEMENTAREA_MODE",
+                                                         "YEARS_BEGINEXPLUATATION_MODE", "YEARS_BUILD_MODE", "COMMONAREA_MODE", "ELEVATORS_MODE",
+                                                         "ENTRANCES_MODE", "FLOORSMAX_MODE", "FLOORSMIN_MODE", "LANDAREA_MODE", "LIVINGAPARTMENTS_MODE",
+                                                         "LIVINGAREA_MODE", "NONLIVINGAPARTMENTS_MODE", "NONLIVINGAREA_MODE",
+                                                         "APARTMENTS_MEDI","BASEMENTAREA_MEDI",
+                                                         "YEARS_BEGINEXPLUATATION_MEDI", "YEARS_BUILD_MEDI", "COMMONAREA_MEDI", "ELEVATORS_MEDI",
+                                                         "ENTRANCES_MEDI", "FLOORSMAX_MEDI", "FLOORSMIN_MEDI", "LANDAREA_MEDI", "LIVINGAPARTMENTS_MEDI",
+                                                         "LIVINGAREA_MEDI", "NONLIVINGAPARTMENTS_MEDI", "NONLIVINGAREA_MEDI",
+                                                         "TOTALAREA_MODE","DAYS_LAST_PHONE_CHANGE"), ignore_na = FALSE, remove_most_frequent_dummy = TRUE, remove_selected_columns=TRUE)
+datadummy <- datadummy %>% mutate_if(is.integer, as.factor)
+datazeros <- datadummy %>% mutate_if(is.factor, fct_explicit_na, na_level="0")
+
+rm(datadummy, databinned, datacombined); gc()
+
+#resplit data into train MIN and test datasets with the same rows as the main analysis
+trainbinned <- trainID %>% left_join(datazeros, by = "SK_ID_CURR")
+testbinned <- testID %>% left_join(datazeros, by = "SK_ID_CURR")
+rm(datazeros);gc()
+summary(trainbinned$CODE_GENDER)
+
+#remove SK_ID_CURR,X values for ML modeling
+trainMIN<- trainMIN[-c(1:2)]
 #MODEL 1 MINORITY runs on:
 #trainMIN
-
 #MODEL 2 MINORITY runs on
-trainnosexMIN <- trainMIN[-c(4)]
+trainnosexMIN <- trainMIN[-c(2)]
 
-####REBALANCED TRAINING SET####
-#rebalancing procedure
+#create "Rebalanced Collected Data" using "extra" women observations discarded during creating of "Minority Data"
+#sample an additional 31,603 from the original data (as if you gathered more data from customers or other sources)
+names(trainREBfemalerowID)[1] <- "RowNumber"
+trainREBcollfemale<- merge(trainREBfemalerowID,trainfemale, by="RowNumber")
+trainREBcollfemale<- trainREBcollfemale[-c(1)]
+#sample out 52,671 males from the minority dataset
+trainmale$RowNumber <- seq.int(nrow(trainmale))
+names(trainREBmalerowID)[1] <- "RowNumber"
+trainREBcollmale <- merge(trainREBmalerowID,trainmale, by="RowNumber")
+trainREBcollmale<- trainREBcollmale[-c(1)]
+#combine 31,603 females to original 21,068 from minority sample, add in subset of males for a balanced 50/50 dataset
+trainREBcoll <- rbind.data.frame(trainREBcollmale,trainMINfemale, trainREBcollfemale)
+#remove SK_ID_CURR,X for modelling
+trainREBcoll<- trainREBcoll[-c(1:2)]
+#REBcoll MIN M1 runs on 
+#trainREBcoll
+#REB MIN M2 runs on
+trainnosexREBcoll <- trainREBcoll[-c(2)]
+
+#create "Rebalanced Data" using undersampling procedure
 #add count from 1 to 84,274 to trainmale
 trainmale$RowNumber <- seq.int(nrow(trainmale))
 maleIDMIN <- data.frame(malerowID$V1);names(maleIDMIN)[1] <- "RowNumber"
 train50male<- merge(maleIDMIN,trainmale, by="RowNumber")
 train50male<- train50male[-c(1)]
 train50 <- rbind.data.frame(train50male,trainMINfemale)
-
-
+#remove SK_ID_CURR,X for modelling
+train50<- train50[-c(1:2)]
 #MODEL 1 REBALANCED runs on:
 #train50
-
 #MODEL 2 REBALANCED runs on
-trainnosex50 <- train50[-c(4)]
-
-rm(datasex, femaleIDMIN, femalerowID, maleIDMIN, malerowID, train, train50male, trainfemale, trainmale, trainMINfemale)
+trainnosex50 <- train50[-c(2)]
 
 #print to csv for records
 write.csv(trainMIN, "trainMIN.csv")
 write.csv(trainnosexMIN, "trainnosexMIN.csv")
+write.csv(trainREBcoll, "trainREBcoll.csv")
+write.csv(trainnosexREBcoll, "trainnosexREBcoll.csv")
 write.csv(train50, "train50.csv")
 write.csv(trainnosex50, "trainnosex50.csv")
 write.csv(test, "test.csv")
+rm(femaleIDMIN, femalerowID, maleIDMIN, malerowID, test, testrowID, train, train50, train50male, trainfemale, trainmale, trainMIN, trainnosexMIN,
+   trainMINfemale, trainnosex50, trainnosexREBcoll, trainREBcoll, trainREBcollfemale, trainREBcollmale, trainREBfemalerowID,
+   trainREBmalerowID, trainrowID);gc()
 
-#remove files to free working space
-rm(trainMIN, trainnosexMIN, train50, trainnosex50, test)
+####5.1. Comparison of discrimination traditional statistical and machine learning models####
+#here we run the logistic regression model; the machine learning models are run in DataRobot
 
-####PREDICTIONS USING GRADIENT BOOSTING####
+#logistic regression with gender (Model 1)
+#per Andreeva and Matuszyk (2019) methodology variable must be statistically significant at 0.05 AND it much show "high" predictive power (AUC)
+#per Andreeva and Matuszyk (2019) methodology "the variable that show significant statistical effect are consistent with general literature on credit scoring"
+#run model on full training dataset (with 456 variables --> 122 features)
+M1 <- glm(Target ~ . - SK_ID_CURR, data= trainbinned, family = binomial(link="logit"))
+options(max.print=10000)
+summary(M1) 
 
-####MINORITY MODEL 1 (WITH GENDER)####
+#testing individual feature AUCs to determine if they should be included in prediction
+#generate smaller training subsets for coarse classified variables that have been converted to binary dummies
+cntchildren<- train %>% select(starts_with('CNT_CHILDREN'), Target)
+rm(fondkapremont)
 
+M0<- glm(Target ~ . ,data= cntchildren, family = binomial(link="logit"))
+summary(M0) 
+prediction <- predict(M0,test, type= "response")
+AUC_M0 <- auc(test$Target, prediction)
+CI_M0 <- ci.auc(AUC_M0) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
+print(AUC_M0)
+print(CI_M0)
+
+#run model with features that have AUC CIs that cross 50% -per Andreeva and Matuszyk (2019) methodology
+train1.1<- trainbinned %>% select(SK_ID_CURR, CODE_GENDER, FLAG_OWN_CAR, FLAG_OWN_REALTY,NAME_INCOME_TYPE, NAME_EDUCATION_TYPE,
+                                  NAME_FAMILY_STATUS,NAME_HOUSING_TYPE,FLAG_WORK_PHONE, FLAG_PHONE, OCCUPATION_TYPE, REGION_RATING_CLIENT,
+                                  REGION_RATING_CLIENT_W_CITY, WEEKDAY_APPR_PROCESS_START, HOUR_APPR_PROCESS_START,ORGANIZATION_TYPE,
+                                  FONDKAPREMONT_MODE, WALLSMATERIAL_MODE,
+                                  DEF_30_CNT_SOCIAL_CIRCLE, DEF_60_CNT_SOCIAL_CIRCLE,FLAG_DOCUMENT_3, FLAG_DOCUMENT_5, FLAG_DOCUMENT_6,
+                                  FLAG_DOCUMENT_8, FLAG_DOCUMENT_13, FLAG_DOCUMENT_15, FLAG_DOCUMENT_16, FLAG_DOCUMENT_18,
+                                  AMT_REQ_CREDIT_BUREAU_MON, AMT_REQ_CREDIT_BUREAU_QRT, AMT_REQ_CREDIT_BUREAU_YEAR,
+                                  starts_with('AMT_CREDIT_'),starts_with('AMT_ANNUITY_'),starts_with('AMT_GOODS_PRICE_'),
+                                  starts_with('DAYS_BIRTH_'), starts_with('DAYS_EMPLOYED_'),starts_with('DAYS_REGISTRATION_'), 
+                                  starts_with('DAYS_ID_PUBLISH_'),starts_with('OWN_CAR_AGE_'),starts_with('EXT_SOURCE_1_'),
+                                  starts_with('EXT_SOURCE_2_'), starts_with('EXT_SOURCE_3_'), starts_with('DAYS_LAST_PHONE_CHANGE_'), 
+                                  starts_with('APARTMENTS_AVG_'),starts_with('FLOORSMIN_AVG'), starts_with('LIVINGAREA_AVG_'),
+                                  starts_with('BASEMENTAREA_MODE_'),
+                                  starts_with('FLOORSMAX_MODE'),starts_with('LIVINGAREA_MODE'),starts_with('NONLIVINGAREA_MODE_'),
+                                  starts_with('FLOORSMIN_MEDI_'),starts_with('LIVINGAREA_MEDI_'),starts_with('NONLIVINGAREA_MEDI_'),
+                                  starts_with('TOTALAREA_MODE_'),Target)
+
+#run final model with only significant features
+M1.1 <- glm(Target ~. -SK_ID_CURR, data= train1.1, family = binomial(link="logit"))
+summary(M1.1) 
+
+#Pseudo-R squared statistics (McFadden - higher is better- between 0.2 to 0.4 very good)
+pR2(M1.1) #0.1256
+
+#review predictions
+predictionMINM1 <- predict(M1.1,testbinned, type= "response")
+LRAUC_MINM1 <- auc(testbinned$Target, predictionMINM1)
+LRCI_MINM1 <- ci.auc(LRAUC_MINM1) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
+print(LRAUC_MINM1)
+print(LRCI_MINM1)
+write.csv(predictionMINM1, "Predictions_LRMINM1.csv")
+head(testbinned)
+
+#generate binary prediction at mean(predictionMINM1) cutoff
+binarypredictionMINM1 <- ifelse(predictionMINM1 > mean(predictionMINM1),1,0)
+print(confusionMatrix(as.factor(binarypredictionMINM1),as.factor(testbinned$Target), positive= "1", dnn=c("Predicted","Actual")))
+
+#Final Model Fit
+#plot residuals
+plot(M1.1)
+
+#check multicollinearity using the vif()
+#function from the car package (anything greater than 7 is very high and likely an issue)
+library(car)
+vif(M1.1)
+1/vif(M1.1)
+
+#logistic regression without gender (Model 2), using same features as Model 1
+M2 <- glm(Target ~. -SK_ID_CURR - CODE_GENDER, data= train1.1, family = binomial(link="logit"))
+summary(M2) 
+
+#Pseudo-R squared statistics (McFadden - higher is better- between 0.2 to 0.4 very good)
+pR2(M2) #0.1141
+
+#review predictions
+predictionMINM2 <- predict(M2,testbinned, type= "response")
+LRAUC_MINM2 <- auc(testbinned$Target, predictionMINM2)
+LRCI_MINM2 <- ci.auc(LRAUC_MINM2) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
+print(LRAUC_MINM2)
+print(LRCI_MINM2)
+
+#generate binary prediction at mean(predictionMINM2) cutoff (different than M1)
+binarypredictionMINM2 <- ifelse(predictionMINM2 > mean(predictionMINM2),1,0)
+print(confusionMatrix(as.factor(binarypredictionMINM2),as.factor(testbinned$Target), positive= "1", dnn=c("Predicted","Actual")))
+
+write.csv(predictionMINM2, "Predictions_LRMINM2.csv")
+
+#Final Model Fit
+#plot residuals
+plot(M2)
+
+#check multicollinearity using the vif()
+#function from the car package (anything greater than 7 is very high and likely an issue)
+library(car)
+vif(M2)
+1/vif(M2)
+
+#compare models with and without features that have AUC CIs that cross 50%
+anova(M1.1, M2, test= 'Chisq')
+#M1 statistically significantly better
+
+library(stargazer)
+stargazer(M1.1, M2, type= "html", out="LogisticRegression_M1M2.doc", 
+          intercept.bottom=F, intercept.top= T, digits=4)
+
+####5.2.2. Machine Learning Discrimination: Gender-blind Feature Selection####
+#train XGBoost tree ensemble on Minority data with gender (Model 1) to understand feature importance
 train <- read.csv("trainMIN.csv")
 test <- read.csv("test.csv")
-train <- train[-c(1:3)]
-test <- test[-c(1:3)]
 Testing_Predictions<-test$Target
 test$Target<-NULL
 
@@ -261,27 +481,87 @@ p <- list(objective = "binary:logistic",
           lambda = 0,
           nrounds = 2000)
 
-m_xgb <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
+m_xgbM1 <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
 
-##Getting the Predictions
-Target2<-predict(m_xgb,dtest)
+#calculate SHAP values for explainability
+shap_valuesM1 <- shap.values(xgb_model= m_xgbM1, X_train = train_1)
+shap_valuesdfM1 <- as.data.frame(shap_valuesM1$mean_shap_score)
+write.csv(shap_valuesdfM1, "shapvaluesM1.csv")
 
-Final_df<-cbind(test$SK_ID_CURR,Target2)
-write.csv(Final_df,"Predictions_MinorityModel1.csv")
+shap_longM1 <- shap.prep(xgb_model= m_xgbM1, X_train = train_1)
+shap.plot.summary(shap_longM1)
 
-#get the feature names
-names <- dimnames(data.matrix(train_1))[[2]]
-#compute feature importance matrix
-importance_matrix <- xgb.importance(names, model= m_xgb)
-#graph
-xgb.plot.importance(importance_matrix[1:25,])
-write.csv(importance_matrix, "MINM1imp.csv")
+#create  subset of dataset as required for explorations, given computation requirements of SHAP interaction values (Lundberg et al. 2019, https://arxiv.org/abs/1905.04610)
+#dataset include gender-reliant features, gender-redundant features, and top 5 important gender-neutral features
+condensed <- trainMIN %>% select(CODE_GENDER, EXT_SOURCE_2, EXT_SOURCE_3, ANNUITY_LENGTH, EXT_SOURCE_1, 
+                                          CREDIT_TO_GOODS_RATIO, AMT_ANNUITY, NAME_EDUCATION_TYPE, DAYS_BIRTH,
+                                          DAYS_LAST_DUE_1ST_VERSION_max, NAME_FAMILY_STATUS, CAR_TO_EMPLOY_RATIO,
+                                          AMT_GOODS_PRICE, DAYS_ID_PUBLISH, ORGANIZATION_TYPE, 
+                                          NAME_CASH_LOAN_PURPOSE_max, CNT_CREDIT_PROLONG_n_distinct, CNT_CREDIT_PROLONG_sum,
+                                          AMT_INST_MIN_REGULARITY_min, RATE_INTEREST_PRIVILEGED_max, LIVE_REGION_NOT_WORK_REGION,
+                                          NFLAG_LAST_APPL_IN_DAY_min, STATUS_min_n_distinct, 
+                                          AMT_DRAWINGS_OTHER_CURRENT_sum, AMT_DRAWINGS_OTHER_CURRENT_max, CNT_DRAWINGS_CURRENT_min,
+                                          CNT_DRAWINGS_OTHER_CURRENT_mean, CNT_DRAWINGS_POS_CURRENT_n_distinct, CREDIT_CURRENCY_sd,
+                                          NAME_CONTRACT_STATUS_n_distinct.x, NAME_CONTRACT_TYPE_min, NFLAG_INSURED_ON_APPROVAL_min, 
+                                          NFLAG_LAST_APPL_IN_DAY_sd, RATE_INTEREST_PRIVILEGED_min,
+                                          Target) 
 
-####MINORITY MODEL 2 (WITHOUT GENDER)####
+#train XGBoost tree ensemble on condensed dataset with gender (Model 1) to understand gender interactions
+
+train <- condensed
+test$Target<-NULL
+
+y=train$Target
+
+train_1<-train%>%
+  select(-Target)
+cat("Preparing data...\n")
+
+train_1<-as.matrix(train_1)
+test1<-as.matrix(test)
+dtest <- xgb.DMatrix(test1)
+
+dtrain <- xgb.DMatrix(data = train_1, label = y)
+
+cat("Training model...\n")
+p <- list(objective = "binary:logistic",
+          booster = "gbtree",
+          eval_metric = "auc",
+          nthread = 4,
+          eta = 0.05,
+          max_depth = 6,
+          min_child_weight = 30,
+          gamma = 0,
+          subsample = 0.85,
+          colsample_bytree = 0.7,
+          colsample_bylevel = 0.632,
+          alpha = 0,
+          lambda = 0,
+          nrounds = 2000)
+
+m_xgbtoyM1 <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
+
+#compute SHAP values and SHAP interaction values for condensed dataset
+shap_valuesM1 <- shap.values(xgb_model= m_xgbtoyM1, X_train = train_1)
+shap_valuesdfM1 <- as.data.frame(shap_valuesM1$mean_shap_score)
+shap_scoredfM1 <- as.data.frame(shap_valuesM1$shap_score)
+write.csv(shap_valuesdfM1, "shaptoymodelM1.csv")
+write.csv(shap_scoredfM1, "shapscoretoyM1.csv")
+
+#males =2, females=1
+shap_scorewithgender <- cbind(shap_scoredfM1,trainMIN$CODE_GENDER);names(shap_scorewithgender)[35] <- "Gender"
+shap_scorewithgender <- cbind(shap_scorewithgender, trainMIN$Target);names(shap_scorewithgender)[36]<- "Target"
+
+shap_longM1 <- shap.prep(xgb_model= m_xgbtoyM1, X_train = train_1)
+shap.plot.summary(shap_longM1)
+
+shap_intM1 <- shap.prep.interaction(xgb_model= m_xgbtoyM1, X_train = train_1)
+shap.plot.summary(shap_intM1)
+
+
+#train XGBoost tree ensemble on Minority data  without gender (Model 2) to understand feature importance
 train <- read.csv("trainnosexMIN.csv")
 test <- read.csv("test.csv")
-train <- train[-c(1:3)]
-test <- test[-c(1:3)]
 Testing_Predictions<-test$Target
 test$Target<-NULL
 #Removing the gender from the test data
@@ -315,27 +595,20 @@ p <- list(objective = "binary:logistic",
           lambda = 0,
           nrounds = 2000)
 
-m_xgb <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
+m_xgbM2 <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
 
-#predictions
-Target2<-predict(m_xgb,dtest)
-Final_df<-cbind(test$SK_ID_CURR,Target2)
-write.csv(Final_df,"Predictions_MinorityModel2.csv")
+#calculate SHAP values for explainability
+shap_valuesM2 <- shap.values(xgb_model= m_xgbM2, X_train = train_1)
+shap_valuesdfM2 <- as.data.frame(shap_valuesM1$mean_shap_score)
+write.csv(shap_valuesdfM2, "shapvaluesM2.csv")
 
-#get the feature names
-names <- dimnames(data.matrix(train_1))[[2]]
-#compute feature importance matrix
-importance_matrix <- xgb.importance(names, model= m_xgb)
-#graph
-xgb.plot.importance(importance_matrix[1:25,])
-write.csv(importance_matrix, "MINM2imp.csv")
+shap_longM2 <- shap.prep(xgb_model= m_xgbM2, X_train = train_1)
+shap.plot.summary(shap_longM2)
 
-####REBALANCED MODEL 1 (WITH GENDER)####
-train<- read.csv("train50.csv")
-test <- read.csv("test.csv")
-train <- train[-c(1:3)]
-test <- test[-c(1:3)]
-Testing_Predictions<-test$Target
+
+#train XGBoost tree ensemble on condensed dataset without gender (Model 2) to understand gender interactions
+condensednosex <- condensed %>% select(-CODE_GENDER)
+train <- condensednosex
 test$Target<-NULL
 
 y=train$Target
@@ -349,6 +622,7 @@ test1<-as.matrix(test)
 dtest <- xgb.DMatrix(test1)
 
 dtrain <- xgb.DMatrix(data = train_1, label = y)
+
 
 cat("Training model...\n")
 p <- list(objective = "binary:logistic",
@@ -366,26 +640,136 @@ p <- list(objective = "binary:logistic",
           lambda = 0,
           nrounds = 2000)
 
-m_xgb <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
-
-#Predictions
-Target2<-predict(m_xgb,dtest)
-Final_df<-cbind(test$SK_ID_CURR,Target2)
-write.csv(Final_df,"Predictions_RebalancedModel1.csv")
+m_xgbtoyM2 <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
 
 #get the feature names
 names <- dimnames(data.matrix(train_1))[[2]]
 #compute feature importance matrix
-importance_matrix <- xgb.importance(names, model= m_xgb)
+importance_matrix <- xgb.importance(names, model= m_xgbtoyM2)
 #graph
-xgb.plot.importance(importance_matrix[1:25,])
-write.csv(importance_matrix, "REBM1imp.csv")
+xgb.plot.importance(importance_matrix[1:9,])
 
-####REBALANCED MODEL 2 (WITHOUT GENDER)####
+xgb.plot.tree(model= m_xgbtoyM2, trees=0, show_node_id = TRUE)
+
+shap_valuesM2 <- shap.values(xgb_model= m_xgbtoyM2, X_train = train_1)
+shap_valuesdfM2 <- as.data.frame(shap_valuesM2$mean_shap_score)
+shap_scoredfM2 <- as.data.frame(shap_valuesM2$shap_score)
+write.csv(shap_valuesdfM2, "shaptoymodelM2.csv")
+write.csv(shap_scoredfM2, "shapscoretoyM2.csv")
+
+shap_longM2 <- shap.prep(xgb_model= m_xgbtoyM2, X_train = train_1)
+shap.plot.summary(shap_longM2)
+
+shap_intM2 <- shap.prep.interaction(xgb_model= m_xgbtoyM2, X_train = train_1)
+shap.plot.summary(shap_intM2)
+
+
+####6. A stylized example: generalizing the properties of gender-blind feature selection####
+#data available at github: https://github.com/stephaniekelley/genderbias
+style <- read_csv("AgedataV12.csv")
+stylelog <- style %>% mutate(Target = as.factor(Target),
+                             Gender = as.factor(Gender))
+stylelog <- stylelog %>% mutate(Gender2 = ifelse(Gender==1,1,0))%>%
+  mutate(Gender2 = as.factor(Gender2))
+
+#1: Stylized LR (Model 1)
+StyleMINM1 <- glm(Target~ Gender +  Income + Score +
+                    Age + Gender*Age + Tenure, data= stylelog, family = binomial(link="logit"),na.action=na.exclude)
+summary(StyleMINM1) 
+coef(StyleMINM1)
+
+#2: Stylized LR (Model 2)
+StyleMINM2 <- glm(Target~  Income + Score+ 
+                    Age  + Tenure , data= stylelog, family = binomial(link="logit"),na.action=na.exclude)
+summary(StyleMINM2)
+coef(StyleMINM2)
+
+#assess the predicted probability of default of example woman and man generated by Model 1 and Model 2 - only difference is their gender
+
+#Model 1 with gender 
+#female, 100,000 income, EXT score of 320, Tenure of 20, Age 60 (XXX) #NO DEFAULT
+fem60M1= data.frame(Income = 100000, Age = 60, Gender=1, Score = 360, Tenure = 20)
+fem60M1 <- fem60M1 %>% mutate(Gender = as.factor(Gender))
+predict(StyleMINM1, fem60M1, type="response")
+
+#female, 100,000 income, EXT score of 320, Tenure of 20, Age 65 (0.1217718) #NO DEFAULT
+fem65M1= data.frame(Income = 100000, Age = 65, Gender=1, Score = 360, Tenure = 20)
+fem65M1 <- fem65M1 %>% mutate(Gender = as.factor(Gender))
+predict(StyleMINM1, fem65M1, type="response")
+
+#male, 100,000 income, EXT score of 320, Tenure of 20, Age 60 (XXX) #NO DEFAULT
+mal60M1= data.frame(Income = 100000, Age = 60, Gender=2, Score = 360, Tenure = 20)
+mal60M1 <- mal60M1 %>% mutate(Gender = as.factor(Gender))
+predict(StyleMINM1, mal60M1, type="response")
+
+#male, 100,000 income, EXT score of 320, Tenure of 20, Age 65 (0.1540111) #DEFAULTS
+mal65M1= data.frame(Income = 100000, Age = 65, Gender=2, Score = 360, Tenure = 20)
+mal65M1 <- mal65M1 %>% mutate(Gender = as.factor(Gender))
+predict(StyleMINM1, mal65M1, type="response")
+
+
+#Model 2 without gender
+#female, 100,000 income, EXT score of 320, Tenure of 20, Age 60 (XXX) #STILL NO DEFAULT BUT RR UP 2X
+fem60M2= data.frame(Income = 100000, Age = 60, Gender=1, Score = 360, Tenure = 20)
+fem60M2 <- fem60M2 %>% mutate(Gender = as.factor(Gender))
+predict(StyleMINM2, fem60M2, type="response")
+
+#female, 100,000 income, EXT score of 320, Tenure of 20, Age 65 (0.142057) #NOW DEFAULTS (BAD)
+fem65M2= data.frame(Income = 100000, Age = 65, Gender=1, Score = 360, Tenure = 20)
+fem65M2 <- fem65M2 %>% mutate(Gender = as.factor(Gender))
+predict(StyleMINM2, fem65M2, type="response")
+
+#male, 100,000 income, EXT score of 320, Tenure of 20, Age 60 (XXX) #NO DEFAULT RR DECREASES
+mal60M2= data.frame(Income = 100000, Age = 60, Gender=2, Score = 360, Tenure = 20)
+mal60M2 <- mal60M2 %>% mutate(Gender = as.factor(Gender))
+predict(StyleMINM2, mal60M2, type="response")
+
+#male, 100,000 income, EXT score of 320, Tenure of 20, Age 65 (0.142057) #DEFAULTS BUT RR GOES DOWN
+mal65M2= data.frame(Income = 100000, Age = 65, Gender=2, Score = 360, Tenure = 20)
+mal65M2 <- mal65M2 %>% mutate(Gender = as.factor(Gender))
+predict(StyleMINM2, mal65M2, type="response")
+
+
+#test data with no missingness
+#data available at github: https://github.com/stephaniekelley/genderbias
+stylenomiss <- read_csv("AgedataV12nomiss.csv")
+stylelognomiss <- stylenomiss %>% mutate(Target = as.factor(Target),
+                             Gender = as.factor(Gender))
+stylelognomiss <- stylelognomiss %>% mutate(Gender2 = ifelse(Gender==1,1,0))%>%
+  mutate(Gender2 = as.factor(Gender2))
+
+#3: Stylized LR No Missingness (Model 1)
+StyleMINM1nomiss <- glm(Target~ Gender +  Income + Score +
+                    Age + Gender*Age + Tenure, data= stylelognomiss, family = binomial(link="logit"),na.action=na.exclude)
+summary(StyleMINM1nomiss) 
+coef(StyleMINM1nomiss)
+
+#4: Stylized LR No Missingness (Model 2)
+StyleMINM2nomiss <- glm(Target~  Income + Score+ 
+                    Age  + Tenure , data= stylelognomiss, family = binomial(link="logit"),na.action=na.exclude)
+summary(StyleMINM2nomiss)
+coef(StyleMINM2nomiss)
+
+library("stargazer")
+stargazer(StyleMINM1, StyleMINM2,StyleMINM1nomiss, StyleMINM2nomiss, type= "html", out="style_binarylogistic_V12NoMiss_Aug18th.doc", 
+          intercept.bottom=F, intercept.top= T, digits=5)
+
+
+#5: Regular LR No Missing (replicate regular OVB)
+StyleMINM1OVB <- glm(Target~ Gender +  Income + Score +
+                       Age + Tenure, data= stylelognomiss, family = binomial(link="logit"),na.action=na.exclude)
+summary(StyleMINM1OVB) 
+
+#Tenure is removed because it is not significant
+StyleMINM2OVB <- glm(Target~  Income + Score +
+                       Age , data= stylelognomiss, family = binomial(link="logit"),na.action=na.exclude)
+summary(StyleMINM2OVB)
+
+####7. Possible Approaches to reduce discrimination####
+#gender-aware hyperparameter tuning: creating a single models that has hyperparameters turning using gender of other applicants from Level 1 or 2 country
+#model is then trained on rebalanced data without individual applicant gender (Model 2)
 train <- read.csv("trainnosex50.csv")
 test<-read.csv("test.csv")
-train <- train[-c(1:3)]
-test <- test[-c(1:3)]
 Testing_Predictions<-test$Target
 test$Target<-NULL
 #Removing the gender from the test data
@@ -419,50 +803,11 @@ p <- list(objective = "binary:logistic",
           lambda = 0,
           nrounds = 2000)
 
-m_xgb <- xgb.train(p, dtrain, p$nrounds, print_every_n = 50)
+m_xgb <- xgb.train(p, dtrain, p$nrounds, print_ev01ery_n = 50)
 
 #predictions
 Target2<-predict(m_xgb,dtest)
 Final_df<-cbind(test$SK_ID_CURR,Target2)
-write.csv(Final_df,"Predictions_RebalancedModel2.csv")
+write.csv(Final_df,"Predictions_GenderawareHyperparameter.csv")
 
-#get the feature names
-names <- dimnames(data.matrix(train_1))[[2]]
-#compute feature importance matrix
-importance_matrix <- xgb.importance(names, model= m_xgb)
-#graph
-xgb.plot.importance(importance_matrix[1:25,])
-write.csv(importance_matrix, "REBM2imp.csv")
 
-####AUC CALCULATIONS####
-
-test <- read.csv(file= "test.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-
-#MINORITY MODEL 1 AUC Calculation
-predMINM1 <- read.csv(file= "Predictions_MinorityModel1.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-model1MIN_AUC <- auc(test$Target, predMINM1$Target2) #Calculate AUC
-CIMINM1 <- ci.auc(model1MIN_AUC) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
-print(model1MIN_AUC)
-print(CIMINM1)
-
-#MINORITY MODEL 2 AUC Calculation
-#predict AUC MIN M2
-predMINM2 <- read.csv(file= "Predictions_MinorityModel2.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-model2MIN_AUC <- auc(test$Target,predMINM2$Target2) #Calculate AUC
-CIMINM2 <- ci.auc(model2MIN_AUC) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
-print(model2MIN_AUC)
-print(CIMINM2)
-
-#REBALANCED MODEL 1 AUC Calculation
-predREBM1 <- read.csv(file= "Predictions_RebalancedModel1.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-model1REB_AUC <- auc(test$Target, predREBM1$Target2) #Calculate AUC
-CIREBM1 <- ci.auc(model1REB_AUC) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
-print(model1REB_AUC)
-print(CIREBM1)
-
-#REBALANCED MODEL 2 AUC Calculation
-predREBM2 <- read.csv(file= "Predictions_RebalancedModel2.csv", header=TRUE, sep=",",na.strings=c("","NA"))
-model2REB_AUC <- auc(test$Target, predREBM2$Target2) #Calculate AUC
-CIREBM2 <- ci.auc(model2REB_AUC) #Confidence Interval for AUC - 2000 bootstraps for 95% CI
-print(model2REB_AUC)
-print(CIREBM2)
