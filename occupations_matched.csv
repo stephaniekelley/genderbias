@@ -1,0 +1,271 @@
+,oldnames,newnames
+1,Employed-Private,Core staff
+2,Part Owner of Corp.,Core staff
+3,Bus. Owner-Sole Prop.,Core staff
+4,Bus. Owner-Partner/Assoc.,Core staff
+5,OFW,Laborers
+6,Employed-Government,Core staff
+7,Unemployed,unknown
+8,Choose,unknown
+9,Not Available,unknown
+10,OWNER OF BUSINESS,Core staff
+11,ELECTRICAL FOREMAN,Laborers
+12,PRESIDENT CEO,Managers
+13,OWNER,Core staff
+14,PROGRAMMER,IT staff
+15,SEAMAN,Security staff
+16,EXECUTIVE OFFICER,Managers
+17,BUSINESSMAN,Sales staff
+18,ARCHITECT,High skill tech staff
+19,MANAGER,Managers
+20,CREWING CLERK,Laborers
+21,HOUSEWIFE/CHILDREN,unknown
+22,FINANCE MANAGER/OFFICER,Managers
+23,GENERAL MANAGER,Managers
+24,OTHER OCCUPATION ,unknown
+25,VICE PRESIDENT,Managers
+26,Asst. Professor 4,Core staff
+27,LAWYER,High skill tech staff
+28,PROJECT ENGINEER,Core staff
+29,ACCOUNTING STAFF,Accountants
+30,NURSE,Medicine staff
+31,OPERATIONS OFFICER,Managers
+32,TEACHER,Core staff
+33,SALES AND MARKETING,Sales staff
+34,CASHIER,Low-skill Laborers
+35,SUPERVISOR,Managers
+36,SALE AREA MANAGER,Managers
+37,DOCTOR,Medicine staff
+38,TECHNICIAN,High skill tech staff
+39,DEPARTMENT HEAD,Managers
+40,ACCOUNTANT,Accountants
+41,PRINCIPAL,Core staff
+42,PHYSICIAN/OWNER,Medicine staff
+43,GUARD CIVIL AND PRIVATE,Security staff
+44,ASST. VICE PRESIDENT,Managers
+45,QUALITY CONTROLLER,High skill tech staff
+46,CHIEF OPERATING OFFICER,Managers
+47,MANAGING DIRECTOR,Managers
+48,RETIRED/PENSIONER,unknown
+49,OVERSEAS FILIPINO WORKER ,Laborers
+50,CHIEF MATE,Security staff
+51,CONSULTANT,High skill tech staff
+52,MARKETING ASSISTANT,Core staff
+53,PURCHASER,Core staff
+54,HRD OFFICER,HR staff
+55,DEAN,Core staff
+56,ASST. DIRECTOR,Managers
+57,CHIEF ,Security staff
+58,FINANCIAL ANALYSTS,High skill tech staff
+59,COORDINATOR,Core staff
+60,OFFICE PERSONNEL,Secretaries
+61,STEWARDESS/STEWARD,Core staff
+62,DREDGER OPERATOR,Laborers
+63,EXECUTIVE SECRETARY,Secretaries
+64,OWNER CONTRACTOR,Core staff
+65,SALES SUPERVISOR,Managers
+66,"ASST. MANAGER, UP",Managers
+67,LEGAL OFFICER,High skill tech staff
+68,EXAMINER,Core staff
+69,SCHOOL DIRECTOR,Core staff
+70,EXECUTIVE VICE PRESIDENT,Managers
+71,DENTIST,Medicine staff
+72,COLLECTION OFFICER,Accountants
+73,GOVERNMENT EMPLOYEE,Core staff
+74,prep.press teaml eader,Managers
+75,POLICE OFFICER III,Security staff
+76,WAITER,Waiters/barmen staff
+77,ACCOUNT EXECUTIVE,Sales staff
+78,JUDGE,Core staff
+79,AUDITOR,Accountants
+80,MEDICAL OFFICER,Medicine staff
+81,ADMIN OFFICER,Secretaries
+82,ANALYST,High skill tech staff
+83,PRODUCTION OPERATOR MECHA,Laborers
+84,DISTRIBUTOR,Core staff
+85,ARTIST,unknown
+86,GOVERMENT OFFICIAL,Core staff
+87,RECEPTIONIST,Secretaries
+88,CORPORATE DIRECTOR,Managers
+89,SALES (COMMISSION),Sales staff
+90,CHEF,Cooking staff
+91,MAJOR ACCOUNT ESPECIALIST,Sales staff
+92,PSYCHOLOGIST,Medicine staff
+93,MARKETING MANAGER,Managers
+94,RESEARCHER,Core staff
+95,TREASURER,Accountants
+96,STOCKHOLDER,unknown
+97,CREWING MANAGER,Managers
+98,SENIOR ANALYST,High skill tech staff
+99,MARKETING EXECUTIVE,Managers
+100,ADMIN STAFF,Secretaries
+101,PILOT,High skill tech staff
+102,DESIGNER,Core staff
+103,CLERK,Secretaries
+104,DRIVER,Drivers
+105,BANK OFFICER/EMPLOYEE,Core staff
+106,FOREMAN,Laborers
+107,LIASON OFFICER,Core staff
+108,CHEMIST,High skill tech staff
+109,SALES REPRESENTATIVE,Sales staff
+110,COOK,Cooking staff
+111,ENGINEERING ASST,High skill tech staff
+112,MIDWIFE,Medicine staff
+113,SENIOR VICE PRESIDENT,Managers
+114,GUIDANCE COUNSELOR,Core staff
+115,SR. EXECUTIVE,Managers
+116,DERMATOLOGIST,Medicine staff
+117,OFFICER IN-CHARGE,Security staff
+118,DRAFTSMAN,High skill tech staff
+119,TECHNICAL CLERK,High skill tech staff
+120,INSTRUCTOR,Core staff
+121,DATA ENCODERS,IT staff
+122,MEDICAL TECHNOLOGIST,Medicine staff
+123,RECORDS,Secretaries
+124,MECHANIC,Laborers
+125,FACULTY STAFF/MEMBER,Core staff
+126,EDITOR,Core staff
+127,PHYSICIAN/OB GYNE,Medicine staff
+128,PRODUCTION STAFF,Low-skill Laborers
+129,CHAIRMAN,Managers
+130,unknown,unknown
+131,PROJECT MANAGER,Managers
+132,RADIO OPERATOR,Core staff
+133,DOCUMENTATION OFFICER,Secretaries
+134,INFORMATION SYSTEMS OFFIC,IT staff
+135,ACCOUNTING ASST.,Accountants
+136,BOOKKEEPER,Accountants
+137,OPTOMETRIST,Medicine staff
+138,STUDENT,unknown
+139,ASSOCIATE DEAN,Core staff
+140,LEGISLATIVE OFFICER,Core staff
+141,LEGISLATIVE STAFF ASST.,Core staff
+142,SENATOR,Core staff
+143,PRODUCER,Core staff
+144,PAYROLL ASST.,HR staff
+145,REAL ESTATE BROKER,Realty agents
+146,ARMY OFFICER,Security staff
+147,COMPTROLLER,Accountants
+148,PHARMACIST,Medicine staff
+149,ART DIRECTOR,Core staff
+150,LOGISTICS SPECIALIST,Core staff
+151,CONTROLLER,Accountants
+152,MANAGEMENT ASSISTANT,Secretaries
+153,QUANTITY SURVEYOR,Core staff
+154,DIVISION HEAD,Managers
+155,TELEPHONE OPERATOR,Low-skill Laborers
+156,FARMER,Low-skill Laborers
+157,ACTOR/SINGER,unknown
+158,INSURANCE AGENT OR SUB-AG,High skill tech staff
+159,EXECUTIVE PRODUCER,Core staff
+160,AGENT,Core staff
+161,BUS OWNER,Core staff
+162,LICENSING,Core staff
+163,STENOGRAPHER,High skill tech staff
+164,STATISTICIAN,High skill tech staff
+165,NEWSMAN,Low-skill Laborers
+166,LABORATORY TECHNICIANS,High skill tech staff
+167,SITE ENGINEER,High skill tech staff
+168,IMMIGRATION OFFICER,Security staff
+169,MASTER TEACHER 2,Core staff
+170,SERVICE STAFF,Private service staff
+171,SALES CONSULTANT,Sales staff
+172,PROJECT COORDINATOR,Core staff
+173,PAYROLL OFFICER,HR staff
+174,JOURNALIST,Core staff
+175,LOGISTIC ASSISTANT,Core staff
+176,WAREHOUSE MAN,Low-skill Laborers
+177,SUPERINTENTDENT,Core staff
+178,PHYSICAL THERAPIST,Medicine staff
+179,CREATIVE DIRECTOR,Managers
+180,MERCHANDISER,Sales staff
+181,ENTERTAINER,unknown
+182,ADMIN AIDE IV,Secretaries
+183,IT NETWORK,IT staff
+184,UNDERWRITER ASST.,High skill tech staff
+185,OPHTHALMOLOGIST,Medicine staff
+186,DIETICIAN/NUTRITIONIST,Medicine staff
+187,COMPUTER OPERATOR,IT staff
+188,guest relation officer,Low-skill Laborers
+189,JR. MANAGER,Managers
+190,SR. ELECTRONIC TECHNICIAN,High skill tech staff
+191,CORPORATE BOARD CHAIRMAN,Managers
+192,VETERINARIAN,Medicine staff
+193,ASST. SECRETARY,Secretaries
+194,INDEPENDENT DISTRIBUTOR,Core staff
+195,RELIGIOUS ORDER,unknown
+196,INTERIOR DECORATOR,Core staff
+197,DATA ENCODER,IT staff
+198,FINANCIAL CONTROLLER,Accountants
+199,REGIONAL HEAD,Managers
+200,LANDLORD,unknown
+201,WEB DEVELOPER,IT staff
+202,SCRIPTWRITER,Core staff
+203,IT SUPPORT PERSONNEL,IT staff
+204,CO OWNER,Core staff
+205,OB-GYNE,Medicine staff
+206,CARPENTER,Laborers
+207,JR. EXECUTIVE,Managers
+208,MASON,Laborers
+209,SALES ASSOCIATE,Sales staff
+210,DENTAL SURGEON,Medicine staff
+211,HEAD OF COLLEGES,Core staff
+212,SPECIAL INVESTIGATOR,Security staff
+213,ALUMNI DIRECTRESS,Core staff
+214,PRIEST,unknown
+215,NAVY OFFICER,Security staff
+216,MIS STAFF,Private service staff
+217,JAIL WARDEN,Security staff
+218,MACHINE OPERATOR,Laborers
+219,COMMUNITY AFFAIR OFFICER ,Core staff
+220,SHIP CAPTAIN,Security staff
+221,COUNCILOR,Core staff
+222,FRONTLINE ASST.,Sales staff
+223,SENIOR PROCESS ASSOCIATE,Core staff
+224,LINEMEN,Laborers
+225,INSURANCE UNDERWRITER,High skill tech staff
+226,FIREMAN,Laborers
+227,BARTENDER,Waiters/barmen staff
+228,IT SERVICE MANAGER,Managers
+229,ROOFER INSTALLER,Laborers
+230,WAREHOUSE MANAGER,Managers
+231,SCAFFOLDEL,Low-skill Laborers
+232,ASSISTANT DRILLER,Laborers
+233,ASST. SUPERINTENDENT,Managers
+234,BANK CASHIER,Accountants
+235,LBE HEAD,Managers
+236,DEALER,unknown
+237,INFORMATION,IT staff
+238,VICE PRINCIPAL,Core staff
+239,PRODUCTION ASST. MANAGER,Core staff
+240,TELEMARKETER,Low-skill Laborers
+241,RADIO/TV COMMENTATOR,Core staff
+242,BRANCH MANAGER,Managers
+243,AVP FOR OPERATION,Managers
+244,SOCIAL WORKER,Core staff
+245,SENIOR ICT ARCHITECT,IT staff
+246,INSPECTOR,Core staff
+247,WAREHOUSE ASSOCIATE,Low-skill Laborers
+248,PERSONAL ASSISTANT,Secretaries
+249,VISUAL MERCHANDISER,Sales staff
+250,COMPANY DIRECTOR,Managers
+251,surgeant major,Security staff
+252,REMITTANCE,Core staff
+253,ADMINISTRATIVE ASST. II,Secretaries
+254,TEACHER 1,Core staff
+255,EDP ANALYST/PROGRAMMER,IT staff
+256,CUSTOMER SERVICE REP.,Sales staff
+257,CAREGIVER,Private service staff
+258,DISC JOCKEY BARMAN,Waiters/barmen staff
+259,collection specialist,Accountants
+260,CUSTOMER RELATION&MKTG ,Sales staff
+261,checker,Low-skill Laborers
+262,survey engineer,High skill tech staff
+263,BOARD MEMBER,unknown
+264,TEACHER III,Core staff
+265,CALL CENTER AGENT,Low-skill Laborers
+266,SOFTWARE ENGR ANALYST,IT staff
+267,GEN. OPERATIVE,Cleaning staff
+268,FACTORY WORKER,Low-skill Laborers
+269,CO-OWNER,Core staff
+270,FIRE FIGHTER,Core staff
